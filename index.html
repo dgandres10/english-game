@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Vocabulary Quiz (British English)</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body { margin: 0; background: #f6f7fb; color: #1b1b1b; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 18px; }
+    .card { background:#fff; border-radius:18px; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,.08); }
+    header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+    h1 { font-size: 20px; margin: 0; }
+    .pill { background:#eef2ff; padding:8px 12px; border-radius:999px; font-weight:700; }
+    .row { display:grid; grid-template-columns: 1fr; gap:14px; }
+    @media (min-width: 760px){ .row { grid-template-columns: 1.1fr .9fr; align-items:start; } }
+
+    .imgBox {
+      background:#fbfbff; border:2px dashed #e5e7ff; border-radius:16px;
+      padding:14px; display:flex; align-items:center; justify-content:center; min-height: 300px;
+    }
+    .imgBox img { max-width: 100%; max-height: 340px; object-fit: contain; display:none; }
+    .fallback {
+      width: 100%; max-width: 460px; height: 300px; border-radius: 14px;
+      display:flex; align-items:center; justify-content:center; font-size: 18px;
+      background: linear-gradient(135deg, #fff 0%, #f2f4ff 100%);
+      border: 2px solid #e5e7ff;
+      text-align:center; padding: 10px;
+    }
+
+    .q { font-size: 22px; font-weight: 800; margin: 6px 0 10px; }
+    .btnRow { display:flex; gap:10px; flex-wrap:wrap; }
+    button {
+      border:0; border-radius:14px; padding: 14px 14px; font-size:18px;
+      background:#2f5cff; color:#fff; cursor:pointer;
+      box-shadow:0 8px 18px rgba(47,92,255,.25);
+    }
+    button.secondary { background:#eef2ff; color:#1b1b1b; box-shadow:none; }
+    button:disabled { opacity:.55; cursor:not-allowed; }
+
+    .choices { display:grid; gap:12px; margin-top:10px; }
+    .choice {
+      width: 100%; text-align:left; padding:14px 14px; border-radius:16px;
+      background:#f2f4ff; color:#1b1b1b; border:2px solid transparent;
+      box-shadow:none; font-size:18px; font-weight:800;
+    }
+    .choice:hover { border-color:#c7d2fe; }
+    .choice.correct { background:#e7f8ef; border-color:#86efac; }
+    .choice.wrong { background:#ffecec; border-color:#fca5a5; }
+
+    .feedback {
+      margin-top:10px; padding: 12px 14px; border-radius:14px;
+      font-weight:900; font-size:18px; display:none;
+      background:#f6f7fb;
+    }
+    .feedback.ok { background:#e7f8ef; }
+    .feedback.no { background:#ffecec; }
+
+    .small { font-size:14px; opacity:.85; margin-top: 10px; line-height: 1.4; }
+    .footer { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top: 12px; }
+    label { font-weight:800; }
+    select {
+      border-radius:12px; padding:10px 12px; border:1px solid #dbe1ff; background:#fff;
+      font-size:14px;
+      max-width: 100%;
+    }
+    .progressWrap {
+      width:100%; margin-top: 8px;
+      background:#eef2ff; border-radius: 999px; overflow:hidden; height: 14px; display:none;
+    }
+    .progressBar { height:100%; width:0%; background:#2f5cff; transition: width .2s ease; }
+    .progressText { font-size: 13px; opacity:.8; margin-top: 6px; display:none; }
+    .topControls { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <header>
+        <div>
+          <h1 id="title">Vocabulary Quiz (British English)</h1>
+          <div class="small" id="subtitle">Choose a vocabulary set, then press Start.</div>
+        </div>
+        <div class="topControls">
+          <div>
+            <label for="vocabSel">Vocabulary:</label><br />
+            <select id="vocabSel">
+              <option value="clothes">Clothes</option>
+              <option value="animals">Animals</option>
+              <option value="food">Food</option>
+            </select>
+          </div>
+          <div class="pill" id="scorePill">Score: 0 / 0</div>
+        </div>
+      </header>
+
+      <div class="row">
+        <div class="imgBox" aria-label="Picture">
+          <img id="pic" alt="" />
+          <div id="fallback" class="fallback" aria-hidden="true">Select a vocabulary and press Start 🖼️</div>
+        </div>
+
+        <div>
+          <div class="q" id="question">Press Start!</div>
+
+          <div class="btnRow">
+            <button id="startBtn">Start</button>
+            <button id="repeatBtn" class="secondary" disabled>🔊 Repeat</button>
+            <button id="nextBtn" class="secondary" disabled>Next ➜</button>
+          </div>
+
+          <div class="progressWrap" id="progressWrap">
+            <div class="progressBar" id="progressBar"></div>
+          </div>
+          <div class="progressText" id="progressText"></div>
+
+          <div class="choices" id="choices"></div>
+          <div id="feedback" class="feedback"></div>
+
+          <div class="small">
+            Tip: If the voice doesn’t sound British, choose a different voice (look for <b>en-GB</b>).
+          </div>
+
+          <div class="footer">
+            <div>
+              <label for="voiceSel">Voice:</label><br />
+              <select id="voiceSel"></select>
+            </div>
+            <div>
+              <label for="speedSel">Speed:</label><br />
+              <select id="speedSel">
+                <option value="0.9">Slow</option>
+                <option value="1.0" selected>Normal</option>
+                <option value="1.1">Fast</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="small" style="margin-top:12px;">
+            You can also open: <b>index.html?vocab=clothes</b> (or animals / food).
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(async () => {
+  // ---------- DOM ----------
+  const titleEl = document.getElementById("title");
+  const subtitleEl = document.getElementById("subtitle");
+  const vocabSel = document.getElementById("vocabSel");
+
+  const pic = document.getElementById("pic");
+  const fallback = document.getElementById("fallback");
+  const questionEl = document.getElementById("question");
+  const choicesEl = document.getElementById("choices");
+  const feedbackEl = document.getElementById("feedback");
+  const startBtn = document.getElementById("startBtn");
+  const repeatBtn = document.getElementById("repeatBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const scorePill = document.getElementById("scorePill");
+  const voiceSel = document.getElementById("voiceSel");
+  const speedSel = document.getElementById("speedSel");
+  const progressWrap = document.getElementById("progressWrap");
+  const progressBar = document.getElementById("progressBar");
+  const progressText = document.getElementById("progressText");
+
+  // ---------- State ----------
+  let voices = [];
+  let items = [];
+  let imageBasePath = "";
+  let current = null;
+  let currentChoices = [];
+  let locked = false;
+  let score = 0;
+  let total = 0;
+
+  const cache = new Map(); // src -> { img, ok }
+
+  // ---------- Helpers ----------
+  function qs(name) {
+    const u = new URL(window.location.href);
+    return u.searchParams.get(name);
+  }
+
+  function setQs(name, value) {
+    const u = new URL(window.location.href);
+    u.searchParams.set(name, value);
+    window.history.replaceState({}, "", u);
+  }
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function updateScore() {
+    scorePill.textContent = `Score: ${score} / ${total}`;
+  }
+
+  function speak(text, { interrupt=true } = {}) {
+    if (!("speechSynthesis" in window)) return;
+    if (interrupt) window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "en-GB";
+    const v = voices.find(v => v.name === voiceSel.value);
+    if (v) u.voice = v;
+    u.rate = Number(speedSel.value || 1.0);
+    window.speechSynthesis.speak(u);
+  }
+
+  function loadVoices() {
+    voices = window.speechSynthesis?.getVoices?.() || [];
+    const sorted = voices.slice().sort((a,b) => {
+      const aGB = (a.lang || "").toLowerCase().startsWith("en-gb") ? 0 : 1;
+      const bGB = (b.lang || "").toLowerCase().startsWith("en-gb") ? 0 : 1;
+      const aEN = (a.lang || "").toLowerCase().startsWith("en") ? 0 : 1;
+      const bEN = (b.lang || "").toLowerCase().startsWith("en") ? 0 : 1;
+      return (aGB - bGB) || (aEN - bEN) || a.name.localeCompare(b.name);
+    });
+
+    voiceSel.innerHTML = "";
+    sorted.forEach(v => {
+      const opt = document.createElement("option");
+      opt.value = v.name;
+      opt.textContent = `${v.name} (${v.lang})`;
+      voiceSel.appendChild(opt);
+    });
+    const gb = sorted.find(v => (v.lang || "").toLowerCase().startsWith("en-gb"));
+    if (gb) voiceSel.value = gb.name;
+  }
+
+  function sentenceFor(label) {
+    // Plurals: simple rule + special cases
+    const low = label.toLowerCase();
+    if (low === "wellington boots" || low === "boots" || low === "shoes" || low.endsWith("s")) {
+      return `They are ${label}.`;
+    }
+    const needsAn = /^[aeiou]/i.test(label.trim());
+    const article = needsAn ? "an" : "a";
+    return `It is ${article} ${label}.`;
+  }
+
+  async function preloadOne(src) {
+    if (cache.has(src)) return cache.get(src);
+    return await new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => { cache.set(src, { img, ok: true }); resolve(cache.get(src)); };
+      img.onerror = () => { cache.set(src, { img, ok: false }); resolve(cache.get(src)); };
+      img.src = src;
+    });
+  }
+
+  async function preloadAllImages(list) {
+    const unique = [...new Set(list.map(x => imageBasePath + x.image))];
+    progressWrap.style.display = "block";
+    progressText.style.display = "block";
+    progressBar.style.width = "0%";
+    progressText.textContent = `Loading 0 / ${unique.length} pictures…`;
+
+    fallback.style.display = "flex";
+    pic.style.display = "none";
+    fallback.textContent = "Loading pictures… 🖼️";
+
+    let done = 0;
+    for (const src of unique) {
+      await preloadOne(src);
+      done += 1;
+      const pct = Math.round((done / unique.length) * 100);
+      progressBar.style.width = pct + "%";
+      progressText.textContent = `Loading ${done} / ${unique.length} pictures…`;
+    }
+
+    progressText.textContent = "All pictures loaded ✅";
+    setTimeout(() => {
+      progressWrap.style.display = "none";
+      progressText.style.display = "none";
+    }, 700);
+  }
+
+  async function setImage(item) {
+    const src = imageBasePath + item.image;
+    pic.alt = item.label;
+
+    const entry = cache.get(src) || await preloadOne(src);
+    if (entry.ok) {
+      pic.src = entry.img.src;
+      fallback.style.display = "none";
+      pic.style.display = "block";
+    } else {
+      pic.style.display = "none";
+      fallback.style.display = "flex";
+      fallback.textContent = `Missing image: ${src}`;
+    }
+  }
+
+  function buildRound() {
+    locked = false;
+    feedbackEl.style.display = "none";
+    feedbackEl.className = "feedback";
+
+    current = items[Math.floor(Math.random() * items.length)];
+    const others = items.filter(x => x.id !== current.id);
+    const distractors = shuffle(others).slice(0, 2);
+    currentChoices = shuffle([current, ...distractors]);
+
+    questionEl.textContent = "What is this?";
+    setImage(current);
+
+    choicesEl.innerHTML = "";
+    currentChoices.forEach((it, idx) => {
+      const btn = document.createElement("button");
+      btn.className = "choice";
+      btn.type = "button";
+      btn.textContent = sentenceFor(it.label);
+      btn.addEventListener("click", () => choose(idx));
+      choicesEl.appendChild(btn);
+    });
+
+    speak("What is this?");
+    repeatBtn.disabled = false;
+    nextBtn.disabled = true;
+  }
+
+  function choose(index) {
+    if (locked) return;
+    locked = true;
+    total += 1;
+
+    const buttons = [...choicesEl.querySelectorAll("button.choice")];
+    const picked = currentChoices[index];
+    const pickedSentence = buttons[index].textContent;
+
+    buttons.forEach((b, i) => {
+      if (currentChoices[i].id === current.id) b.classList.add("correct");
+    });
+
+    const isCorrect = picked.id === current.id;
+    if (!isCorrect) buttons[index].classList.add("wrong");
+    else score += 1;
+
+    updateScore();
+
+    feedbackEl.style.display = "block";
+    feedbackEl.classList.toggle("ok", isCorrect);
+    feedbackEl.classList.toggle("no", !isCorrect);
+    feedbackEl.textContent = isCorrect ? "✅ Correct!" : "❌ Try again next time!";
+
+    speak(pickedSentence);
+    nextBtn.disabled = false;
+  }
+
+  async function loadVocab(setName) {
+    const url = `vocab/${setName}.json`;
+    subtitleEl.textContent = `Loading vocabulary: ${setName}…`;
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`Cannot load ${url} (${res.status})`);
+      const data = await res.json();
+
+      titleEl.textContent = data.title || "Vocabulary Quiz (British English)";
+      imageBasePath = data.imageBasePath || "";
+      items = data.items || [];
+
+      // Reset game state & cache
+      cache.clear();
+      current = null; currentChoices = [];
+      score = 0; total = 0; updateScore();
+      questionEl.textContent = "Press Start!";
+      choicesEl.innerHTML = "";
+      feedbackEl.style.display = "none";
+      repeatBtn.disabled = true;
+      nextBtn.disabled = true;
+      fallback.style.display = "flex";
+      pic.style.display = "none";
+      fallback.textContent = "Press Start to load pictures 🖼️";
+
+      subtitleEl.textContent = `Loaded: ${setName}. Press Start.`;
+    } catch (e) {
+      subtitleEl.textContent = `Error: ${e.message}`;
+      fallback.style.display = "flex";
+      pic.style.display = "none";
+      fallback.textContent = `Could not load: ${url}`;
+    }
+  }
+
+  // ---------- Init ----------
+  const fromUrl = qs("vocab");
+  if (fromUrl) vocabSel.value = fromUrl;
+
+  await loadVocab(vocabSel.value);
+
+  vocabSel.addEventListener("change", async () => {
+    setQs("vocab", vocabSel.value);
+    await loadVocab(vocabSel.value);
+  });
+
+  startBtn.addEventListener("click", async () => {
+    if (!items.length) return;
+    startBtn.disabled = true;
+    startBtn.textContent = "Loading…";
+
+    await preloadAllImages(items);
+
+    startBtn.disabled = false;
+    startBtn.textContent = "Restart";
+    buildRound();
+  });
+
+  repeatBtn.addEventListener("click", () => {
+    if (!current) return;
+    speak("What is this?");
+  });
+
+  nextBtn.addEventListener("click", () => {
+    if (!current) return;
+    buildRound();
+  });
+
+  if ("speechSynthesis" in window) {
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  } else {
+    voiceSel.innerHTML = `<option>Speech not supported</option>`;
+  }
+
+  updateScore();
+})();
+</script>
+</body>
+</html>
