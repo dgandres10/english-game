@@ -6,9 +6,12 @@
     { "id": "skirt", "label": "skirt", "image": "skirt.png" },
     { "id": "trousers", "label": "trousers", "image": "trousers.png" },
     { "id": "shorts", "label": "shorts", "image": "shorts.png" },
-    { "id": "tshirt", "label": "T-shirt", "image": "t-shirt.png" },
+    { "id": "tshirt", "label": "T-shirt", "image": "tshirt.png" },
     { "id": "shirt", "label": "shirt", "image": "shirt.png" },
     { "id": "shoes", "label": "shoes", "image": "shoes.png" },
-    { "id": "wellies", "label": "wellington boots", "image": "wellington-boots.png" }
+    { "id": "bag", "label": "bag", "image": "bag.png" },
+    { "id": "jacket", "label": "jacket", "image": "jacket.png" },
+    { "id": "rainboots", "label": "rainboots", "image": "rainboots.png" },
+    { "id": "jeans", "label": "jeans", "image": "jeans.png" }
   ]
 }
