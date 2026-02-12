@@ -39,18 +39,28 @@
     button:disabled { opacity:.55; cursor:not-allowed; }
 
     .choices { display:grid; gap:12px; margin-top:10px; }
+
+    /* Answer button (text) */
     .choice {
       width: 100%; text-align:left; padding:14px 14px; border-radius:16px;
       background:#f2f4ff; color:#1b1b1b; border:2px solid transparent;
-      box-shadow:none; font-size:22px; font-weight:800;   /* bigger for reading */
+      box-shadow:none; font-size:22px; font-weight:800;
     }
     .choice:hover { border-color:#c7d2fe; }
     .choice.correct { background:#e7f8ef; border-color:#86efac; }
     .choice.wrong { background:#ffecec; border-color:#fca5a5; }
 
-    /* IMPORTANT FIX:
-       Feedback is a normal box now (NOT hidden by default).
-       We hide/show with inline style + JS. */
+    /* Speaker button next to each option */
+    .speakerBtn{
+      min-width:56px;
+      font-size:20px;
+      box-shadow:none;
+      padding: 14px 0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
     .feedback {
       margin-top:10px; padding: 12px 14px; border-radius:14px;
       font-weight:900; font-size:18px;
@@ -74,10 +84,9 @@
     .progressText { font-size: 13px; opacity:.8; margin-top: 6px; display:none; }
     .topControls { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
 
-    /* Reading panel (NOT hidden by CSS) */
     .readPanel { margin-top:10px; }
     .readPanel .label { font-weight:900; margin-bottom:6px; }
-    .readPanel .text  { font-size:28px; line-height:1.3; } /* bigger text */
+    .readPanel .text  { font-size:28px; line-height:1.3; }
     .readPanel .actions { margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; }
     .readPanel .sub { margin-top: 10px; opacity:.9; }
   </style>
@@ -123,10 +132,8 @@
 
           <div class="choices" id="choices"></div>
 
-          <!-- Feedback (hidden initially via inline style) -->
           <div id="feedback" class="feedback" style="display:none;"></div>
 
-          <!-- Reading / listening panel (hidden initially via inline style) -->
           <div id="answerPanel" class="feedback readPanel" style="display:none;">
             <div class="label">You chose:</div>
             <div id="answerText" class="text"></div>
@@ -170,7 +177,6 @@
 
 <script>
 (async () => {
-  // ---------- DOM ----------
   const titleEl = document.getElementById("title");
   const subtitleEl = document.getElementById("subtitle");
   const vocabSel = document.getElementById("vocabSel");
@@ -190,14 +196,12 @@
   const progressBar = document.getElementById("progressBar");
   const progressText = document.getElementById("progressText");
 
-  // Reading panel
   const answerPanel = document.getElementById("answerPanel");
   const answerText = document.getElementById("answerText");
   const correctText = document.getElementById("correctText");
   const readAnswerBtn = document.getElementById("readAnswerBtn");
   const readCorrectBtn = document.getElementById("readCorrectBtn");
 
-  // ---------- State ----------
   let voices = [];
   let items = [];
   let imageBasePath = "";
@@ -212,7 +216,6 @@
 
   const cache = new Map(); // src -> { img, ok }
 
-  // ---------- Helpers ----------
   function qs(name) {
     const u = new URL(window.location.href);
     return u.searchParams.get(name);
@@ -348,13 +351,35 @@
     setImage(current);
 
     choicesEl.innerHTML = "";
+
+    // NEW: allow listening (🔊) before answering
     currentChoices.forEach((it, idx) => {
-      const btn = document.createElement("button");
-      btn.className = "choice";
-      btn.type = "button";
-      btn.textContent = sentenceFor(it.label);
-      btn.addEventListener("click", () => choose(idx));
-      choicesEl.appendChild(btn);
+      const sentence = sentenceFor(it.label);
+
+      const row = document.createElement("div");
+      row.style.display = "flex";
+      row.style.gap = "10px";
+      row.style.alignItems = "stretch";
+
+      const speakBtn = document.createElement("button");
+      speakBtn.type = "button";
+      speakBtn.className = "secondary speakerBtn";
+      speakBtn.textContent = "🔊";
+      speakBtn.addEventListener("click", (e) => {
+        e.stopPropagation(); // don't answer
+        speak(sentence);
+      });
+
+      const answerBtn = document.createElement("button");
+      answerBtn.type = "button";
+      answerBtn.className = "choice";
+      answerBtn.textContent = sentence;
+      answerBtn.dataset.sentence = sentence;
+      answerBtn.addEventListener("click", () => choose(idx));
+
+      row.appendChild(speakBtn);
+      row.appendChild(answerBtn);
+      choicesEl.appendChild(row);
     });
 
     speak("What is this?");
@@ -367,9 +392,11 @@
     locked = true;
     total += 1;
 
+    // IMPORTANT: only pick the answer buttons (not the speaker ones)
     const buttons = [...choicesEl.querySelectorAll("button.choice")];
+
     const picked = currentChoices[index];
-    const pickedSentence = buttons[index].textContent;
+    const pickedSentence = buttons[index].dataset.sentence || buttons[index].textContent;
 
     buttons.forEach((b, i) => {
       if (currentChoices[i].id === current.id) b.classList.add("correct");
@@ -435,7 +462,6 @@
     }
   }
 
-  // ---------- Init ----------
   const fromUrl = qs("vocab");
   if (fromUrl) vocabSel.value = fromUrl;
 
