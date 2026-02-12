@@ -42,15 +42,18 @@
     .choice {
       width: 100%; text-align:left; padding:14px 14px; border-radius:16px;
       background:#f2f4ff; color:#1b1b1b; border:2px solid transparent;
-      box-shadow:none; font-size:18px; font-weight:800;
+      box-shadow:none; font-size:22px; font-weight:800;   /* bigger for reading */
     }
     .choice:hover { border-color:#c7d2fe; }
     .choice.correct { background:#e7f8ef; border-color:#86efac; }
     .choice.wrong { background:#ffecec; border-color:#fca5a5; }
 
+    /* IMPORTANT FIX:
+       Feedback is a normal box now (NOT hidden by default).
+       We hide/show with inline style + JS. */
     .feedback {
       margin-top:10px; padding: 12px 14px; border-radius:14px;
-      font-weight:900; font-size:18px; display:none;
+      font-weight:900; font-size:18px;
       background:#f6f7fb;
     }
     .feedback.ok { background:#e7f8ef; }
@@ -71,11 +74,12 @@
     .progressText { font-size: 13px; opacity:.8; margin-top: 6px; display:none; }
     .topControls { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
 
-    /* Reading panel */
-    .readPanel { display:none; margin-top:10px; }
+    /* Reading panel (NOT hidden by CSS) */
+    .readPanel { margin-top:10px; }
     .readPanel .label { font-weight:900; margin-bottom:6px; }
-    .readPanel .text  { font-size:20px; line-height:1.25; }
+    .readPanel .text  { font-size:28px; line-height:1.3; } /* bigger text */
     .readPanel .actions { margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; }
+    .readPanel .sub { margin-top: 10px; opacity:.9; }
   </style>
 </head>
 <body>
@@ -118,12 +122,18 @@
           <div class="progressText" id="progressText"></div>
 
           <div class="choices" id="choices"></div>
-          <div id="feedback" class="feedback"></div>
 
-          <!-- Reading / listening panel -->
-          <div id="answerPanel" class="feedback readPanel">
+          <!-- Feedback (hidden initially via inline style) -->
+          <div id="feedback" class="feedback" style="display:none;"></div>
+
+          <!-- Reading / listening panel (hidden initially via inline style) -->
+          <div id="answerPanel" class="feedback readPanel" style="display:none;">
             <div class="label">You chose:</div>
             <div id="answerText" class="text"></div>
+
+            <div class="label sub">Correct answer:</div>
+            <div id="correctText" class="text"></div>
+
             <div class="actions">
               <button id="readAnswerBtn" class="secondary" type="button">🔊 Read my answer</button>
               <button id="readCorrectBtn" class="secondary" type="button">✅ Read the correct answer</button>
@@ -183,6 +193,7 @@
   // Reading panel
   const answerPanel = document.getElementById("answerPanel");
   const answerText = document.getElementById("answerText");
+  const correctText = document.getElementById("correctText");
   const readAnswerBtn = document.getElementById("readAnswerBtn");
   const readCorrectBtn = document.getElementById("readCorrectBtn");
 
@@ -254,7 +265,6 @@
   }
 
   function sentenceFor(label) {
-    // Child-friendly; plural heuristic
     const low = label.toLowerCase();
     if (low === "wellington boots" || low === "boots" || low === "shoes" || low === "jeans" || low.endsWith("s")) {
       return `They are ${label}.`;
@@ -321,12 +331,13 @@
   function buildRound() {
     locked = false;
 
-    // Reset panels
     feedbackEl.style.display = "none";
     feedbackEl.className = "feedback";
     answerPanel.style.display = "none";
     lastPickedSentence = "";
     lastCorrectSentence = "";
+    answerText.textContent = "";
+    correctText.textContent = "";
 
     current = items[Math.floor(Math.random() * items.length)];
     const others = items.filter(x => x.id !== current.id);
@@ -360,7 +371,6 @@
     const picked = currentChoices[index];
     const pickedSentence = buttons[index].textContent;
 
-    // Mark correct option
     buttons.forEach((b, i) => {
       if (currentChoices[i].id === current.id) b.classList.add("correct");
     });
@@ -376,16 +386,15 @@
     feedbackEl.classList.toggle("no", !isCorrect);
     feedbackEl.textContent = isCorrect ? "✅ Correct!" : "❌ Try again next time!";
 
-    // Reading panel content
     lastPickedSentence = pickedSentence;
     const correctItem = currentChoices.find(it => it.id === current.id);
     lastCorrectSentence = correctItem ? sentenceFor(correctItem.label) : "";
+
     answerText.textContent = lastPickedSentence;
+    correctText.textContent = lastCorrectSentence;
     answerPanel.style.display = "block";
 
-    // Speak the chosen sentence
     speak(lastPickedSentence);
-
     nextBtn.disabled = false;
   }
 
@@ -403,7 +412,6 @@
       imageBasePath = data.imageBasePath || "";
       items = data.items || [];
 
-      // Reset game state & cache
       cache.clear();
       current = null; currentChoices = [];
       score = 0; total = 0; updateScore();
@@ -462,7 +470,6 @@
     buildRound();
   });
 
-  // Read buttons
   readAnswerBtn.addEventListener("click", () => {
     if (!lastPickedSentence) return;
     speak(lastPickedSentence);
@@ -485,4 +492,3 @@
 </script>
 </body>
 </html>
-
