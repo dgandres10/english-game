@@ -34,23 +34,32 @@
       border:0; border-radius:14px; padding: 14px 14px; font-size:18px;
       background:#2f5cff; color:#fff; cursor:pointer;
       box-shadow:0 8px 18px rgba(47,92,255,.25);
-      touch-action: manipulation;
     }
     button.secondary { background:#eef2ff; color:#1b1b1b; box-shadow:none; }
     button:disabled { opacity:.55; cursor:not-allowed; }
 
-    .choices { display:grid; gap:14px; margin-top:10px; }
+    .choices { display:grid; gap:12px; margin-top:10px; }
 
+    /* Answer button (text) */
     .choice {
-      width: 100%; text-align:left; padding:16px 16px; border-radius:16px;
-      background:#f2f4ff; color:#1b1b1b; border:3px solid transparent;
-      box-shadow:none; font-size:24px; font-weight:900;
-      -webkit-tap-highlight-color: transparent;
+      width: 100%; text-align:left; padding:14px 14px; border-radius:16px;
+      background:#f2f4ff; color:#1b1b1b; border:2px solid transparent;
+      box-shadow:none; font-size:22px; font-weight:800;
     }
     .choice:hover { border-color:#c7d2fe; }
-    .choice.preview { border-color:#c7d2fe; }
     .choice.correct { background:#e7f8ef; border-color:#86efac; }
     .choice.wrong { background:#ffecec; border-color:#fca5a5; }
+
+    /* Speaker button next to each option */
+    .speakerBtn{
+      min-width:56px;
+      font-size:20px;
+      box-shadow:none;
+      padding: 14px 0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
 
     .feedback {
       margin-top:10px; padding: 12px 14px; border-radius:14px;
@@ -60,7 +69,7 @@
     .feedback.ok { background:#e7f8ef; }
     .feedback.no { background:#ffecec; }
 
-    .small { font-size:15px; opacity:.85; margin-top: 10px; line-height: 1.35; }
+    .small { font-size:14px; opacity:.85; margin-top: 10px; line-height: 1.4; }
     .footer { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top: 12px; }
     label { font-weight:800; }
     select {
@@ -80,17 +89,6 @@
     .readPanel .text  { font-size:28px; line-height:1.3; }
     .readPanel .actions { margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; }
     .readPanel .sub { margin-top: 10px; opacity:.9; }
-
-    /* Tablet hint banner */
-    .hintBox{
-      margin-top:10px;
-      padding:10px 12px;
-      border-radius:14px;
-      background:#fff7ed;
-      border:2px solid #fed7aa;
-      font-weight:800;
-      display:none;
-    }
   </style>
 </head>
 <body>
@@ -126,8 +124,6 @@
             <button id="repeatBtn" class="secondary" disabled>🔊 Repeat question</button>
             <button id="nextBtn" class="secondary" disabled>Next ➜</button>
           </div>
-
-          <div class="hintBox" id="tapHint">Tap once to listen. Tap the same answer again to choose ✅</div>
 
           <div class="progressWrap" id="progressWrap">
             <div class="progressBar" id="progressBar"></div>
@@ -199,7 +195,6 @@
   const progressWrap = document.getElementById("progressWrap");
   const progressBar = document.getElementById("progressBar");
   const progressText = document.getElementById("progressText");
-  const tapHint = document.getElementById("tapHint");
 
   const answerPanel = document.getElementById("answerPanel");
   const answerText = document.getElementById("answerText");
@@ -219,10 +214,7 @@
   let lastPickedSentence = "";
   let lastCorrectSentence = "";
 
-  // NEW: first tap previews, second tap answers
-  let previewIndex = null;
-
-  const cache = new Map();
+  const cache = new Map(); // src -> { img, ok }
 
   function qs(name) {
     const u = new URL(window.location.href);
@@ -339,20 +331,12 @@
     }
   }
 
-  function clearPreview() {
-    previewIndex = null;
-    [...choicesEl.querySelectorAll("button.choice")].forEach(b => b.classList.remove("preview"));
-  }
-
   function buildRound() {
     locked = false;
-    previewIndex = null;
 
     feedbackEl.style.display = "none";
     feedbackEl.className = "feedback";
     answerPanel.style.display = "none";
-    tapHint.style.display = "block";
-
     lastPickedSentence = "";
     lastCorrectSentence = "";
     answerText.textContent = "";
@@ -367,31 +351,35 @@
     setImage(current);
 
     choicesEl.innerHTML = "";
+
+    // NEW: allow listening (🔊) before answering
     currentChoices.forEach((it, idx) => {
       const sentence = sentenceFor(it.label);
 
-      const btn = document.createElement("button");
-      btn.className = "choice";
-      btn.type = "button";
-      btn.textContent = sentence;
+      const row = document.createElement("div");
+      row.style.display = "flex";
+      row.style.gap = "10px";
+      row.style.alignItems = "stretch";
 
-      btn.addEventListener("click", () => {
-        if (locked) return;
-
-        // First tap: preview (listen only)
-        if (previewIndex !== idx) {
-          previewIndex = idx;
-          clearPreview();
-          btn.classList.add("preview");
-          speak(sentence);
-          return;
-        }
-
-        // Second tap on same option: answer
-        choose(idx);
+      const speakBtn = document.createElement("button");
+      speakBtn.type = "button";
+      speakBtn.className = "secondary speakerBtn";
+      speakBtn.textContent = "🔊";
+      speakBtn.addEventListener("click", (e) => {
+        e.stopPropagation(); // don't answer
+        speak(sentence);
       });
 
-      choicesEl.appendChild(btn);
+      const answerBtn = document.createElement("button");
+      answerBtn.type = "button";
+      answerBtn.className = "choice";
+      answerBtn.textContent = sentence;
+      answerBtn.dataset.sentence = sentence;
+      answerBtn.addEventListener("click", () => choose(idx));
+
+      row.appendChild(speakBtn);
+      row.appendChild(answerBtn);
+      choicesEl.appendChild(row);
     });
 
     speak("What is this?");
@@ -404,12 +392,11 @@
     locked = true;
     total += 1;
 
-    tapHint.style.display = "none";
-    clearPreview();
-
+    // IMPORTANT: only pick the answer buttons (not the speaker ones)
     const buttons = [...choicesEl.querySelectorAll("button.choice")];
+
     const picked = currentChoices[index];
-    const pickedSentence = buttons[index].textContent;
+    const pickedSentence = buttons[index].dataset.sentence || buttons[index].textContent;
 
     buttons.forEach((b, i) => {
       if (currentChoices[i].id === current.id) b.classList.add("correct");
@@ -459,7 +446,6 @@
       choicesEl.innerHTML = "";
       feedbackEl.style.display = "none";
       answerPanel.style.display = "none";
-      tapHint.style.display = "none";
       repeatBtn.disabled = true;
       nextBtn.disabled = true;
 
