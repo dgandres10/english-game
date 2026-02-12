@@ -1,0 +1,14 @@
+{
+  "title": "Clothes (British English)",
+  "imageBasePath": "images/clothes/",
+  "items": [
+    { "id": "hat", "label": "hat", "image": "hat.png" },
+    { "id": "skirt", "label": "skirt", "image": "skirt.png" },
+    { "id": "trousers", "label": "trousers", "image": "trousers.png" },
+    { "id": "shorts", "label": "shorts", "image": "shorts.png" },
+    { "id": "tshirt", "label": "T-shirt", "image": "t-shirt.png" },
+    { "id": "shirt", "label": "shirt", "image": "shirt.png" },
+    { "id": "shoes", "label": "shoes", "image": "shoes.png" },
+    { "id": "wellies", "label": "wellington boots", "image": "wellington-boots.png" }
+  ]
+}
