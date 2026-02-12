@@ -61,8 +61,7 @@
     label { font-weight:800; }
     select {
       border-radius:12px; padding:10px 12px; border:1px solid #dbe1ff; background:#fff;
-      font-size:14px;
-      max-width: 100%;
+      font-size:14px; max-width: 100%;
     }
     .progressWrap {
       width:100%; margin-top: 8px;
@@ -71,6 +70,12 @@
     .progressBar { height:100%; width:0%; background:#2f5cff; transition: width .2s ease; }
     .progressText { font-size: 13px; opacity:.8; margin-top: 6px; display:none; }
     .topControls { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+    /* Reading panel */
+    .readPanel { display:none; margin-top:10px; }
+    .readPanel .label { font-weight:900; margin-bottom:6px; }
+    .readPanel .text  { font-size:20px; line-height:1.25; }
+    .readPanel .actions { margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; }
   </style>
 </head>
 <body>
@@ -86,8 +91,6 @@
             <label for="vocabSel">Vocabulary:</label><br />
             <select id="vocabSel">
               <option value="clothes">Clothes</option>
-              <option value="animals">Animals</option>
-              <option value="food">Food</option>
             </select>
           </div>
           <div class="pill" id="scorePill">Score: 0 / 0</div>
@@ -105,7 +108,7 @@
 
           <div class="btnRow">
             <button id="startBtn">Start</button>
-            <button id="repeatBtn" class="secondary" disabled>🔊 Repeat</button>
+            <button id="repeatBtn" class="secondary" disabled>🔊 Repeat question</button>
             <button id="nextBtn" class="secondary" disabled>Next ➜</button>
           </div>
 
@@ -116,6 +119,16 @@
 
           <div class="choices" id="choices"></div>
           <div id="feedback" class="feedback"></div>
+
+          <!-- Reading / listening panel -->
+          <div id="answerPanel" class="feedback readPanel">
+            <div class="label">You chose:</div>
+            <div id="answerText" class="text"></div>
+            <div class="actions">
+              <button id="readAnswerBtn" class="secondary" type="button">🔊 Read my answer</button>
+              <button id="readCorrectBtn" class="secondary" type="button">✅ Read the correct answer</button>
+            </div>
+          </div>
 
           <div class="small">
             Tip: If the voice doesn’t sound British, choose a different voice (look for <b>en-GB</b>).
@@ -129,6 +142,7 @@
             <div>
               <label for="speedSel">Speed:</label><br />
               <select id="speedSel">
+                <option value="0.85">Very slow</option>
                 <option value="0.9">Slow</option>
                 <option value="1.0" selected>Normal</option>
                 <option value="1.1">Fast</option>
@@ -137,7 +151,7 @@
           </div>
 
           <div class="small" style="margin-top:12px;">
-            You can also open: <b>index.html?vocab=clothes</b> (or animals / food).
+            Open directly: <b>index.html?vocab=clothes</b>. Vocab files live in <b>vocab/</b>.
           </div>
         </div>
       </div>
@@ -166,6 +180,12 @@
   const progressBar = document.getElementById("progressBar");
   const progressText = document.getElementById("progressText");
 
+  // Reading panel
+  const answerPanel = document.getElementById("answerPanel");
+  const answerText = document.getElementById("answerText");
+  const readAnswerBtn = document.getElementById("readAnswerBtn");
+  const readCorrectBtn = document.getElementById("readCorrectBtn");
+
   // ---------- State ----------
   let voices = [];
   let items = [];
@@ -176,18 +196,15 @@
   let score = 0;
   let total = 0;
 
+  let lastPickedSentence = "";
+  let lastCorrectSentence = "";
+
   const cache = new Map(); // src -> { img, ok }
 
   // ---------- Helpers ----------
   function qs(name) {
     const u = new URL(window.location.href);
     return u.searchParams.get(name);
-  }
-
-  function setQs(name, value) {
-    const u = new URL(window.location.href);
-    u.searchParams.set(name, value);
-    window.history.replaceState({}, "", u);
   }
 
   function shuffle(arr) {
@@ -231,14 +248,15 @@
       opt.textContent = `${v.name} (${v.lang})`;
       voiceSel.appendChild(opt);
     });
+
     const gb = sorted.find(v => (v.lang || "").toLowerCase().startsWith("en-gb"));
     if (gb) voiceSel.value = gb.name;
   }
 
   function sentenceFor(label) {
-    // Plurals: simple rule + special cases
+    // Child-friendly; plural heuristic
     const low = label.toLowerCase();
-    if (low === "wellington boots" || low === "boots" || low === "shoes" || low.endsWith("s")) {
+    if (low === "wellington boots" || low === "boots" || low === "shoes" || low === "jeans" || low.endsWith("s")) {
       return `They are ${label}.`;
     }
     const needsAn = /^[aeiou]/i.test(label.trim());
@@ -258,6 +276,7 @@
 
   async function preloadAllImages(list) {
     const unique = [...new Set(list.map(x => imageBasePath + x.image))];
+
     progressWrap.style.display = "block";
     progressText.style.display = "block";
     progressBar.style.width = "0%";
@@ -301,8 +320,13 @@
 
   function buildRound() {
     locked = false;
+
+    // Reset panels
     feedbackEl.style.display = "none";
     feedbackEl.className = "feedback";
+    answerPanel.style.display = "none";
+    lastPickedSentence = "";
+    lastCorrectSentence = "";
 
     current = items[Math.floor(Math.random() * items.length)];
     const others = items.filter(x => x.id !== current.id);
@@ -336,6 +360,7 @@
     const picked = currentChoices[index];
     const pickedSentence = buttons[index].textContent;
 
+    // Mark correct option
     buttons.forEach((b, i) => {
       if (currentChoices[i].id === current.id) b.classList.add("correct");
     });
@@ -351,12 +376,23 @@
     feedbackEl.classList.toggle("no", !isCorrect);
     feedbackEl.textContent = isCorrect ? "✅ Correct!" : "❌ Try again next time!";
 
-    speak(pickedSentence);
+    // Reading panel content
+    lastPickedSentence = pickedSentence;
+    const correctItem = currentChoices.find(it => it.id === current.id);
+    lastCorrectSentence = correctItem ? sentenceFor(correctItem.label) : "";
+    answerText.textContent = lastPickedSentence;
+    answerPanel.style.display = "block";
+
+    // Speak the chosen sentence
+    speak(lastPickedSentence);
+
     nextBtn.disabled = false;
   }
 
   async function loadVocab(setName) {
-    const url = `vocab/${setName}.json`;
+    const base = new URL('.', window.location.href);
+    const url = new URL(`vocab/${setName}.json`, base).toString();
+
     subtitleEl.textContent = `Loading vocabulary: ${setName}…`;
     try {
       const res = await fetch(url, { cache: "no-store" });
@@ -374,8 +410,10 @@
       questionEl.textContent = "Press Start!";
       choicesEl.innerHTML = "";
       feedbackEl.style.display = "none";
+      answerPanel.style.display = "none";
       repeatBtn.disabled = true;
       nextBtn.disabled = true;
+
       fallback.style.display = "flex";
       pic.style.display = "none";
       fallback.textContent = "Press Start to load pictures 🖼️";
@@ -396,7 +434,9 @@
   await loadVocab(vocabSel.value);
 
   vocabSel.addEventListener("change", async () => {
-    setQs("vocab", vocabSel.value);
+    const u = new URL(window.location.href);
+    u.searchParams.set("vocab", vocabSel.value);
+    window.history.replaceState({}, "", u);
     await loadVocab(vocabSel.value);
   });
 
@@ -422,6 +462,17 @@
     buildRound();
   });
 
+  // Read buttons
+  readAnswerBtn.addEventListener("click", () => {
+    if (!lastPickedSentence) return;
+    speak(lastPickedSentence);
+  });
+
+  readCorrectBtn.addEventListener("click", () => {
+    if (!lastCorrectSentence) return;
+    speak(lastCorrectSentence);
+  });
+
   if ("speechSynthesis" in window) {
     loadVoices();
     window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -434,3 +485,4 @@
 </script>
 </body>
 </html>
+
