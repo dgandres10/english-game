@@ -1,0 +1,14 @@
+{
+  "title": "House Vocabulary Quiz (British English)",
+  "imageBasePath": "images/house/",
+  "items": [
+    { "id": "house", "label": "house", "image": "house.png" },
+    { "id": "kitchen", "label": "kitchen", "image": "kitchen.png" },
+    { "id": "bedroom", "label": "bedroom", "image": "bedroom.png" },
+    { "id": "living_room", "label": "living room", "image": "living-room.png" },
+    { "id": "dining_room", "label": "dining room", "image": "dining-room.png" },
+    { "id": "window", "label": "window", "image": "window.png" },
+    { "id": "picture", "label": "picture", "image": "picture.png" },
+    { "id": "cushion", "label": "cushion", "image": "cushion.png" }
+  ]
+}
