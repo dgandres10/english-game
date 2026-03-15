@@ -12,6 +12,9 @@
     { "id": "bag", "label": "bag", "image": "bag.png" },
     { "id": "jacket", "label": "jacket", "image": "jacket.png" },
     { "id": "rainboots", "label": "rainboots", "image": "rainboots.png" },
-    { "id": "jeans", "label": "jeans", "image": "jeans.png" }
+    { "id": "jeans", "label": "jeans", "image": "jeans.png" }, 
+     { "id": "necklace", "label": "necklace", "image": "necklace.png" },
+    { "id": "watch", "label": "watch", "image": "watch.png" },
+    { "id": "umbrella", "label": "umbrella", "image": "umbrella.png" }
   ]
 }
