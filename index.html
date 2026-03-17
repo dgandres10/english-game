@@ -40,7 +40,6 @@
 
     .choices { display:grid; gap:12px; margin-top:10px; }
 
-    /* Answer button (text) */
     .choice {
       width: 100%; text-align:left; padding:14px 14px; border-radius:16px;
       background:#f2f4ff; color:#1b1b1b; border:2px solid transparent;
@@ -50,7 +49,6 @@
     .choice.correct { background:#e7f8ef; border-color:#86efac; }
     .choice.wrong { background:#ffecec; border-color:#fca5a5; }
 
-    /* Speaker button next to each option */
     .speakerBtn{
       min-width:56px;
       font-size:20px;
@@ -104,7 +102,8 @@
             <label for="vocabSel">Vocabulary:</label><br />
             <select id="vocabSel">
               <option value="clothes">Clothes</option>
-              <option value="house">House</option>     
+              <option value="house">House</option>
+              <option value="feelings">Feelings</option>
             </select>
           </div>
           <div class="pill" id="scorePill">Score: 0 / 0</div>
@@ -215,7 +214,7 @@
   let lastPickedSentence = "";
   let lastCorrectSentence = "";
 
-  const cache = new Map(); // src -> { img, ok }
+  const cache = new Map();
 
   function qs(name) {
     const u = new URL(window.location.href);
@@ -268,11 +267,31 @@
     if (gb) voiceSel.value = gb.name;
   }
 
-  function sentenceFor(label) {
-    const low = label.toLowerCase();
-    if (low === "wellington boots" || low === "boots" || low === "shoes" || low === "jeans" || low.endsWith("s")) {
+  function needsPluralSentence(label) {
+    const low = label.toLowerCase().trim();
+    return low === "wellington boots" || low === "boots" || low === "shoes" || low === "jeans" || low.endsWith("s");
+  }
+
+  function questionFor(item) {
+    if (item.question) return item.question;
+    if ((item.mode || "").toLowerCase() === "feeling") return "How is she?";
+    return "What is this?";
+  }
+
+  function sentenceFor(item) {
+    if (item.answer) return item.answer;
+
+    const label = item.label;
+    const low = label.toLowerCase().trim();
+
+    if ((item.mode || "").toLowerCase() === "feeling") {
+      return `She is ${low}.`;
+    }
+
+    if (needsPluralSentence(label)) {
       return `They are ${label}.`;
     }
+
     const needsAn = /^[aeiou]/i.test(label.trim());
     const article = needsAn ? "an" : "a";
     return `It is ${article} ${label}.`;
@@ -318,7 +337,7 @@
 
   async function setImage(item) {
     const src = imageBasePath + item.image;
-    pic.alt = item.label;
+    pic.alt = item.label || "";
 
     const entry = cache.get(src) || await preloadOne(src);
     if (entry.ok) {
@@ -348,14 +367,15 @@
     const distractors = shuffle(others).slice(0, 2);
     currentChoices = shuffle([current, ...distractors]);
 
-    questionEl.textContent = "What is this?";
+    const currentQuestion = questionFor(current);
+
+    questionEl.textContent = currentQuestion;
     setImage(current);
 
     choicesEl.innerHTML = "";
 
-    // NEW: allow listening (🔊) before answering
     currentChoices.forEach((it, idx) => {
-      const sentence = sentenceFor(it.label);
+      const sentence = sentenceFor(it);
 
       const row = document.createElement("div");
       row.style.display = "flex";
@@ -367,7 +387,7 @@
       speakBtn.className = "secondary speakerBtn";
       speakBtn.textContent = "🔊";
       speakBtn.addEventListener("click", (e) => {
-        e.stopPropagation(); // don't answer
+        e.stopPropagation();
         speak(sentence);
       });
 
@@ -383,7 +403,7 @@
       choicesEl.appendChild(row);
     });
 
-    speak("What is this?");
+    speak(currentQuestion);
     repeatBtn.disabled = false;
     nextBtn.disabled = true;
   }
@@ -393,7 +413,6 @@
     locked = true;
     total += 1;
 
-    // IMPORTANT: only pick the answer buttons (not the speaker ones)
     const buttons = [...choicesEl.querySelectorAll("button.choice")];
 
     const picked = currentChoices[index];
@@ -416,7 +435,7 @@
 
     lastPickedSentence = pickedSentence;
     const correctItem = currentChoices.find(it => it.id === current.id);
-    lastCorrectSentence = correctItem ? sentenceFor(correctItem.label) : "";
+    lastCorrectSentence = correctItem ? sentenceFor(correctItem) : "";
 
     answerText.textContent = lastPickedSentence;
     correctText.textContent = lastCorrectSentence;
@@ -441,8 +460,11 @@
       items = data.items || [];
 
       cache.clear();
-      current = null; currentChoices = [];
-      score = 0; total = 0; updateScore();
+      current = null;
+      currentChoices = [];
+      score = 0;
+      total = 0;
+      updateScore();
       questionEl.textContent = "Press Start!";
       choicesEl.innerHTML = "";
       feedbackEl.style.display = "none";
@@ -489,7 +511,7 @@
 
   repeatBtn.addEventListener("click", () => {
     if (!current) return;
-    speak("What is this?");
+    speak(questionFor(current));
   });
 
   nextBtn.addEventListener("click", () => {
