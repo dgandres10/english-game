@@ -1,0 +1,60 @@
+{
+  "title": "Vocabulary Quiz (British English) – Feelings",
+  "imageBasePath": "images/feelings/",
+  "items": [
+    {
+      "id": "happy",
+      "label": "happy",
+      "image": "happy.png",
+      "mode": "feeling"
+    },
+    {
+      "id": "thirsty",
+      "label": "thirsty",
+      "image": "thirsty.png",
+      "mode": "feeling"
+    },
+    {
+      "id": "cold",
+      "label": "cold",
+      "image": "cold.png",
+      "mode": "feeling"
+    },
+    {
+      "id": "angry",
+      "label": "angry",
+      "image": "angry.png",
+      "mode": "feeling"
+    },
+    {
+      "id": "sad",
+      "label": "sad",
+      "image": "sad.png",
+      "mode": "feeling"
+    },
+    {
+      "id": "hungry",
+      "label": "hungry",
+      "image": "hungry.png",
+      "mode": "feeling"
+    },
+    {
+      "id": "tired",
+      "label": "tired",
+      "image": "tired.png",
+      "mode": "feeling"
+    },
+    {
+      "id": "scared",
+      "label": "scared",
+      "image": "scared.png",
+      "mode": "feeling"
+    },
+    {
+      "id": "bored",
+      "label": "bored",
+      "image": "bored.png",
+      "mode": "feeling"
+    }
+  ]
+}
