@@ -1,0 +1,56 @@
+{
+  "title": "Actions Quiz (British English)",
+  "imageBasePath": "images/actions/",
+  "mode": "actions",
+  "items": [
+    {
+      "id": "see_magnifying_glass",
+      "pronoun": "he",
+      "verb": "looking at",
+      "object": "something with his magnifying glass",
+      "image": "see-magnifying-glass.png"
+    },
+    {
+      "id": "taste_ice_cream",
+      "pronoun": "she",
+      "verb": "tasting",
+      "object": "an ice cream",
+      "image": "taste-ice-cream.png"
+    },
+    {
+      "id": "smell_flowers",
+      "pronoun": "he",
+      "verb": "smelling",
+      "object": "flowers",
+      "image": "smell-flowers.png"
+    },
+    {
+      "id": "touch_cat",
+      "pronoun": "she",
+      "verb": "touching",
+      "object": "a beautiful cat",
+      "image": "touch-cat.png"
+    },
+    {
+      "id": "listen_music",
+      "pronoun": "he",
+      "verb": "listening to",
+      "object": "the music he likes",
+      "image": "listen-music.png"
+    },
+    {
+      "id": "hear_birds",
+      "pronoun": "he",
+      "verb": "hearing",
+      "object": "the birds singing",
+      "image": "hear-birds.png"
+    },
+    {
+      "id": "see_film",
+      "pronoun": "she",
+      "verb": "seeing",
+      "object": "a film she loves",
+      "image": "see-film.png"
+    }
+  ]
+}
