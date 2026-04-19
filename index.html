@@ -104,6 +104,7 @@
               <option value="clothes">Clothes</option>
               <option value="house">House</option>
               <option value="feelings">Feelings</option>
+              <option value="actions">Actions</option>
             </select>
           </div>
           <div class="pill" id="scorePill">Score: 0 / 0</div>
@@ -168,7 +169,7 @@
           </div>
 
           <div class="small" style="margin-top:12px;">
-            Open directly: <b>index.html?vocab=clothes</b>. Vocab files live in <b>vocab/</b>.
+            Open directly: <b>index.html?vocab=actions</b>. Vocab files live in <b>vocab/</b>.
           </div>
         </div>
       </div>
@@ -205,6 +206,7 @@
   let voices = [];
   let items = [];
   let imageBasePath = "";
+  let vocabMode = "vocabulary";
   let current = null;
   let currentChoices = [];
   let locked = false;
@@ -272,19 +274,42 @@
     return low === "wellington boots" || low === "boots" || low === "shoes" || low === "jeans" || low.endsWith("s");
   }
 
+  function isActionsMode() {
+    return vocabMode.toLowerCase() === "actions";
+  }
+
+  function isFeelingItem(item) {
+    return (item.mode || vocabMode || "").toLowerCase() === "feeling" ||
+           (item.mode || vocabMode || "").toLowerCase() === "feelings";
+  }
+
+  function subjectFromPronoun(pronoun) {
+    return pronoun === "he" ? "He" : "She";
+  }
+
+  function makeActionSentence(item, verb = item.verb) {
+    return `${subjectFromPronoun(item.pronoun)} is ${verb} ${item.object}.`;
+  }
+
+  function actionQuestionFor(item) {
+    return item.pronoun === "he" ? "What is he doing?" : "What is she doing?";
+  }
+
   function questionFor(item) {
+    if (isActionsMode()) return actionQuestionFor(item);
     if (item.question) return item.question;
-    if ((item.mode || "").toLowerCase() === "feeling") return "How is she?";
+    if (isFeelingItem(item)) return "How is she?";
     return "What is this?";
   }
 
   function sentenceFor(item) {
+    if (isActionsMode()) return makeActionSentence(item);
     if (item.answer) return item.answer;
 
     const label = item.label;
     const low = label.toLowerCase().trim();
 
-    if ((item.mode || "").toLowerCase() === "feeling") {
+    if (isFeelingItem(item)) {
       return `She is ${low}.`;
     }
 
@@ -295,6 +320,31 @@
     const needsAn = /^[aeiou]/i.test(label.trim());
     const article = needsAn ? "an" : "a";
     return `It is ${article} ${label}.`;
+  }
+
+  function buildActionChoices(currentItem) {
+    const wrongVerbs = [...new Set(
+      items
+        .map(item => item.verb)
+        .filter(verb => verb && verb !== currentItem.verb)
+    )];
+
+    const selectedWrongVerbs = shuffle(wrongVerbs).slice(0, 2);
+
+    const choices = [
+      {
+        id: currentItem.id,
+        sentence: makeActionSentence(currentItem, currentItem.verb),
+        isCorrect: true
+      },
+      ...selectedWrongVerbs.map(verb => ({
+        id: `${currentItem.id}_${verb}`,
+        sentence: makeActionSentence(currentItem, verb),
+        isCorrect: false
+      }))
+    ];
+
+    return shuffle(choices);
   }
 
   async function preloadOne(src) {
@@ -337,7 +387,7 @@
 
   async function setImage(item) {
     const src = imageBasePath + item.image;
-    pic.alt = item.label || "";
+    pic.alt = item.label || item.id || "";
 
     const entry = cache.get(src) || await preloadOne(src);
     if (entry.ok) {
@@ -363,9 +413,19 @@
     correctText.textContent = "";
 
     current = items[Math.floor(Math.random() * items.length)];
-    const others = items.filter(x => x.id !== current.id);
-    const distractors = shuffle(others).slice(0, 2);
-    currentChoices = shuffle([current, ...distractors]);
+
+    if (isActionsMode()) {
+      currentChoices = buildActionChoices(current);
+    } else {
+      const others = items.filter(x => x.id !== current.id);
+      const distractors = shuffle(others).slice(0, 2);
+      currentChoices = shuffle([current, ...distractors]).map(item => ({
+        id: item.id,
+        sentence: sentenceFor(item),
+        isCorrect: item.id === current.id,
+        item
+      }));
+    }
 
     const currentQuestion = questionFor(current);
 
@@ -374,8 +434,8 @@
 
     choicesEl.innerHTML = "";
 
-    currentChoices.forEach((it, idx) => {
-      const sentence = sentenceFor(it);
+    currentChoices.forEach((choice, idx) => {
+      const sentence = choice.sentence;
 
       const row = document.createElement("div");
       row.style.display = "flex";
@@ -414,15 +474,14 @@
     total += 1;
 
     const buttons = [...choicesEl.querySelectorAll("button.choice")];
-
-    const picked = currentChoices[index];
-    const pickedSentence = buttons[index].dataset.sentence || buttons[index].textContent;
+    const pickedChoice = currentChoices[index];
+    const pickedSentence = pickedChoice.sentence;
 
     buttons.forEach((b, i) => {
-      if (currentChoices[i].id === current.id) b.classList.add("correct");
+      if (currentChoices[i].isCorrect) b.classList.add("correct");
     });
 
-    const isCorrect = picked.id === current.id;
+    const isCorrect = pickedChoice.isCorrect;
     if (!isCorrect) buttons[index].classList.add("wrong");
     else score += 1;
 
@@ -434,8 +493,8 @@
     feedbackEl.textContent = isCorrect ? "✅ Correct!" : "❌ Try again next time!";
 
     lastPickedSentence = pickedSentence;
-    const correctItem = currentChoices.find(it => it.id === current.id);
-    lastCorrectSentence = correctItem ? sentenceFor(correctItem) : "";
+    const correctChoice = currentChoices.find(choice => choice.isCorrect);
+    lastCorrectSentence = correctChoice ? correctChoice.sentence : "";
 
     answerText.textContent = lastPickedSentence;
     correctText.textContent = lastCorrectSentence;
@@ -458,6 +517,7 @@
       titleEl.textContent = data.title || "Vocabulary Quiz (British English)";
       imageBasePath = data.imageBasePath || "";
       items = data.items || [];
+      vocabMode = data.mode || setName;
 
       cache.clear();
       current = null;
