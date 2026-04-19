@@ -216,6 +216,9 @@
   let lastPickedSentence = "";
   let lastCorrectSentence = "";
 
+  // Prevents an older image request from replacing the image of the current question.
+  let imageRequestId = 0;
+
   const cache = new Map();
 
   function qs(name) {
@@ -386,10 +389,20 @@
   }
 
   async function setImage(item) {
+    const requestId = ++imageRequestId;
     const src = imageBasePath + item.image;
     pic.alt = item.label || item.id || "";
 
+    // Show a neutral loading state while the correct image is being resolved.
+    pic.style.display = "none";
+    fallback.style.display = "flex";
+    fallback.textContent = "Loading picture… 🖼️";
+
     const entry = cache.get(src) || await preloadOne(src);
+
+    // If another question has been loaded meanwhile, do not update the image.
+    if (requestId !== imageRequestId || current !== item) return;
+
     if (entry.ok) {
       pic.src = entry.img.src;
       fallback.style.display = "none";
